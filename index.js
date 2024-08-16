@@ -42,6 +42,16 @@ async function run() {
     //products
 
     const productCollection = client.db('styleHouse').collection('products')
+
+
+    //get all data
+
+    app.get('/products', async(req, res)=>{
+      const rusult = await productCollection.find().toArray()
+      res.send(rusult)
+    })
+
+
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
