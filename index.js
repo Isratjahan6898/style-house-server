@@ -54,48 +54,76 @@ async function run() {
 
     app.get('/products', async (req, res) => {
       
-        try {
-          const { page = 1, limit = 10, search = '', brand, category, minPrice, maxPrice } = req.query;
-          const skip = (parseInt(page) - 1) * parseInt(limit);
-  
-          // Build the search query
-          const query = {};
-  
-          if (search) {
-              query.productName = { $regex: search, $options: 'i' };
-          }
-  
-          if (brand) {
-              query.brandName = brand;
-          }
-  
-          if (category) {
-              query.category = category;
-          }
-  
-          if (minPrice && maxPrice) {
-              query.price = { $gte: parseInt(minPrice), $lte: parseInt(maxPrice) };
-          } else if (minPrice) {
-              query.price = { $gte: parseInt(minPrice) };
-          } else if (maxPrice) {
-              query.price = { $lte: parseInt(maxPrice) };
-          }
-  
-          const products = await productCollection.find(query).skip(skip).limit(parseInt(limit)).toArray();
-          const totalProducts = await productCollection.countDocuments(query);
-          const totalPages = Math.ceil(totalProducts / limit);
-  
-          res.status(200).json({
-              products,
-              currentPage: parseInt(page),
-              totalPages,
-              totalProducts,
-          });
-      } catch (error) {
-          console.error('Error fetching products:', error);
-          res.status(500).send({ message: 'Failed to fetch products' });
-      }
-     
+      try {
+        const {
+            page = 1,
+            limit = 10,
+            search = '',
+            brand,
+            category,
+            minPrice,
+            maxPrice,
+            sort = 'priceAsc', // Default sort
+        } = req.query;
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        // Build the search query
+        const query = {};
+
+        if (search) {
+            query.productName = { $regex: search, $options: 'i' };
+        }
+
+        if (brand) {
+            query.brandName = brand;
+        }
+
+        if (category) {
+            query.category = category;
+        }
+
+        if (minPrice && maxPrice) {
+            query.price = { $gte: parseInt(minPrice), $lte: parseInt(maxPrice) };
+        } else if (minPrice) {
+            query.price = { $gte: parseInt(minPrice) };
+        } else if (maxPrice) {
+            query.price = { $lte: parseInt(maxPrice) };
+        }
+
+        // Sorting
+        let sortOption = {};
+        switch (sort) {
+            case 'priceAsc':
+                sortOption = { price: 1 };
+                break;
+            case 'priceDesc':
+                sortOption = { price: -1 };
+                break;
+            case 'dateAsc':
+                sortOption = { creationDate: 1 };
+                break;
+            case 'dateDesc':
+                sortOption = { creationDate: -1 };
+                break;
+            default:
+                sortOption = { price: 1 };
+        }
+
+        const products = await productCollection.find(query).skip(skip).limit(parseInt(limit)).sort(sortOption).toArray();
+        const totalProducts = await productCollection.countDocuments(query);
+        const totalPages = Math.ceil(totalProducts / limit);
+
+        res.status(200).json({
+            products,
+            currentPage: parseInt(page),
+            totalPages,
+            totalProducts,
+        });
+    } catch (error) {
+        console.error('Error fetching products:', error);
+        res.status(500).send({ message: 'Failed to fetch products' });
+    }
   });
 
 
