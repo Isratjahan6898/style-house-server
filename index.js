@@ -54,23 +54,27 @@ async function run() {
 
     app.get('/products', async (req, res) => {
       try {
-          const { page = 1, limit = 10 } = req.query;  // Default to page 1 and 10 items per page
-          const skip = (parseInt(page) - 1) * parseInt(limit);
+        const { page = 1, limit = 10, search = '' } = req.query;
+        const skip = (parseInt(page) - 1) * parseInt(limit);
 
-          const products = await productCollection.find().skip(skip).limit(parseInt(limit)).toArray();
-          const totalProducts = await productCollection.countDocuments();  // Total number of products
-          const totalPages = Math.ceil(totalProducts / limit);  // Total number of pages
+        // Build the search query
+        const query = search ? { productName: { $regex: search, $options: 'i' } } : {};
 
-          res.status(200).json({
-              products,
-              currentPage: parseInt(page),
-              totalPages,
-              totalProducts,
-          });
-      } catch (error) {
-          console.error('Error fetching products:', error);
-          res.status(500).send({ message: 'Failed to fetch products' });
-      }
+        const products = await productCollection.find(query).skip(skip).limit(parseInt(limit)).toArray();
+        const totalProducts = await productCollection.countDocuments(query);
+        const totalPages = Math.ceil(totalProducts / limit);
+
+        res.status(200).json({
+            products,
+            currentPage: parseInt(page),
+            totalPages,
+            totalProducts,
+        });
+    } catch (error) {
+        console.error('Error fetching products:', error);
+        res.status(500).send({ message: 'Failed to fetch products' });
+    }
+     
   });
 
 
